@@ -1,3 +1,3 @@
 
 
-export const BOT_NAME="Maishiy xizmat bot"
+export const BOT_NAME = 'Iskandarjon';

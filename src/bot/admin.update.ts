@@ -6,8 +6,8 @@ import { AdminService } from './admin.service';
 export class AdminUpdate {
   constructor(private readonly adminService: AdminService) {}
   
-  @Command("admin")
-  async admin_menu(@Ctx() ctx: Context){
-    await this.adminService.admin_menu(ctx)
+  @Action(/addService_+\d+$/)
+  async onAddService(@Ctx() ctx: Context){
+    await this.adminService.onAddService(ctx)
   }
 }

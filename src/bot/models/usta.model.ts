@@ -1,4 +1,3 @@
-import { STRING } from 'sequelize';
 import { Column, DataType, Model, Table } from 'sequelize-typescript';
 
 interface IUstaCreationAttr {
@@ -97,4 +96,14 @@ export class Usta extends Model<Usta, IUstaCreationAttr> {
     type: DataType.STRING
   })
   call_with_admin: string
+
+  @Column({
+    type: DataType.JSON
+  })
+  mijozlar: [{name: string, mijozid: string, time: Date}]
+
+  @Column({
+    type: DataType.JSON
+  })
+  my_work_day: {is_band: boolean, time: Date}
 }

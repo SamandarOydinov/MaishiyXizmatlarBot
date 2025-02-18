@@ -15,4 +15,14 @@ export class UstaUpdate {
   async onKasb(@Ctx() ctx: Context) {
     await this.ustaService.onKasb(ctx);
   }
+
+  @Action(/^mijozlar_+\d+$/)
+  async onMyCustomer(@Ctx() ctx: Context) {
+    await this.ustaService.onMyCustomer(ctx);
+  }
+
+  @Action(/^myworkday_+\d+$/)
+  async onMyWorkday(@Ctx() ctx: Context) {
+    await this.ustaService.onMyWorkday(ctx);
+  }
 }

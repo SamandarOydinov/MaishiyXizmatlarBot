@@ -32,9 +32,9 @@ export class Admin extends Model<Admin, IAdminCreationAttr> {
   phone_number: string;
 
   @Column({
-    type: DataType.JSON,
+    type: DataType.STRING,
   })
-  location: object;
+  email: string;
 
   @Column({
     type: DataType.STRING,

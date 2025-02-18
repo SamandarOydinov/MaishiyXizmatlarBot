@@ -1,14 +1,22 @@
-import { Action, Ctx, Hears, On, Start, Update } from 'nestjs-telegraf';
+import { Action, Command, Ctx, Hears, On, Start, Update } from 'nestjs-telegraf';
 import { Context } from 'telegraf';
 import { BotService } from './bot.service';
+import { AdminService } from './admin.service';
 
 @Update()
 export class BotUpdate {
-  constructor(private readonly botService: BotService) {}
+  constructor(
+    private readonly botService: BotService,
+    private readonly adminService: AdminService,
+  ) {}
   @Start()
   async onStart(@Ctx() ctx: Context) {
-    console.log('salomsdjf');
     await this.botService.start(ctx);
+  }
+
+  @Command('admin')
+  async admin_menu(@Ctx() ctx: Context) {
+    await this.adminService.admin_menu(ctx);
   }
 
   @On('contact')
@@ -28,7 +36,6 @@ export class BotUpdate {
 
   @Action(/^usta_+\d+_+\d+$/)
   async onTasdiqlash(@Ctx() ctx: Context) {
-    console.log('admin');
     await this.botService.onTasdiqlash(ctx);
   }
 
@@ -55,6 +62,21 @@ export class BotUpdate {
   @Action(/^call_+\d+$/)
   async onCallWithAdmin(@Ctx() ctx: Context) {
     await this.botService.onCallWithAdmin(ctx);
+  }
+
+  @Action(/^start_work_+\d+_+\d+$/)
+  async onStartWorkTime(@Ctx() ctx: Context) {
+    await this.botService.onStartWorkTime(ctx);
+  }
+
+  @Action(/^finish_work_+\d+_+\d+$/)
+  async onFinishWorkTime(@Ctx() ctx: Context) {
+    await this.botService.onFinishWorkTime(ctx);
+  }
+
+  @Action(/^average_timeforclient_+\d+_+\d+$/)
+  async onAverageTimeForClient(@Ctx() ctx: Context) {
+    await this.botService.onAverageTimeForClient(ctx);
   }
 
   @On('text')

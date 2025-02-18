@@ -6,10 +6,13 @@ import { BotUpdate } from './bot.update';
 import { UstaUpdate } from './usta.update';
 import { UstaService } from './usta.service';
 import { Usta } from './models/usta.model';
+import { AdminService } from './admin.service';
+import { AdminUpdate } from './admin.update';
+import { Admin } from './models/admin.model';
 
 @Module({
-  imports: [SequelizeModule.forFeature([Bot, Usta])],
-  providers: [UstaService, UstaUpdate, BotService, BotUpdate ],
+  imports: [SequelizeModule.forFeature([Bot, Usta, Admin])],
+  providers: [UstaService, UstaUpdate, BotService, BotUpdate, AdminService, AdminUpdate ],
   exports: [BotService],
 })
 export class BotModule {}
