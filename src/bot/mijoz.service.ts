@@ -1,21 +1,20 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Context, Markup } from 'telegraf';
-import { Usta } from './models/usta.model';
-import { Bot } from './models/bot.model';
 import { Mijoz } from './models/mijoz.model';
+import { Bot } from './models/bot.model';
 
 @Injectable()
-export class UstaService {
+export class MijozService {
   mijozlar: Partial<Mijoz> = {};
   constructor(
-    @InjectModel(Usta) private readonly ustaModel: typeof Usta,
+    @InjectModel(Mijoz) private readonly mijozModel: typeof Mijoz,
     @InjectModel(Bot) private readonly botModel: typeof Bot,
   ) {}
 
-  async onUsta(ctx: Context) {
+  async onMijoz(ctx: Context) {
     const user_id = ctx.from?.id;
-    const usta = await this.ustaModel.findOne({ where: { user_id } });
+    const mijoz = await this.mijozModel.findOne({ where: { user_id } });
     const user = await this.botModel.findOne({ where: { user_id } });
     if (!user) {
       await ctx.replyWithHTML(
@@ -27,52 +26,53 @@ export class UstaService {
             .oneTime(),
         },
       );
+      this.mijozlar.last_name = 'a';
     }
-    if (!usta) {
-      await this.ustaModel.create({
+    if (!mijoz) {
+      await this.mijozModel.create({
         user_id,
         user_name: ctx.from?.username,
         first_name: ctx.from?.first_name,
         last_name: ctx.from?.last_name,
         lang: ctx.from?.language_code,
       });
-      await ctx.replyWithHTML("Kerakli bo'limni tanlang", {
+      await ctx.replyWithHTML('sizga qanday xizmat kerak: ', {
         reply_markup: {
           inline_keyboard: [
             [
               {
                 text: 'SARTAROSHXONA 💇',
-                callback_data: `kasb_SARTAROSHXONA_${user_id}`,
+                callback_data: `xizmat_SARTAROSHXONA_${user_id}`,
               },
             ],
             [
               {
                 text: "GO'ZALLIK SALONI 💅",
-                callback_data: `kasb_BEAUTYSALON_${user_id}`,
+                callback_data: `xizmat_BEAUTYSALON_${user_id}`,
               },
             ],
             [
               {
                 text: 'ZARGARLIK USTAXONASI 💍',
-                callback_data: `kasb_ZARGAR_${user_id}`,
+                callback_data: `xizmat_ZARGAR_${user_id}`,
               },
             ],
             [
               {
                 text: 'SOATSOZ 🕰',
-                callback_data: `kasb_SOATSOZ_${user_id}`,
+                callback_data: `xizmat_SOATSOZ_${user_id}`,
               },
             ],
             [
               {
                 text: 'POYABZAL USTAXONASI 👞',
-                callback_data: `kasb_POYABZAL_${user_id}`,
+                callback_data: `xizmat_POYABZAL_${user_id}`,
               },
             ],
           ],
         },
       });
-    } else if (!usta.status) {
+    } else if (!mijoz.status) {
       await ctx.reply(
         `Iltimos, <b>Telefon raqamni yuborish</b> tugmasini bosing`,
         {
@@ -91,15 +91,11 @@ export class UstaService {
             [
               {
                 text: `Mijozlar`,
-                callback_data: `mijozlar_${usta.user_id}`,
-              },
-              {
-                text: `Mening ish kunlarim`,
-                callback_data: `myworkday_${usta.user_id}`,
+                callback_data: `mijozlar_${mijoz.user_id}`,
               },
               {
                 text: `Parametrlar`,
-                callback_data: `settings_${usta.user_id}`,
+                callback_data: `settings_${mijoz.user_id}`,
               },
             ],
           ],
@@ -109,10 +105,15 @@ export class UstaService {
   }
 
   async onMyCustomer(ctx: Context) {
+    let mijozlar = await this.mijozModel.findAll({ include: Mijoz });
+    console.log('=>', mijozlar);
     const contextAction = ctx.callbackQuery!['data'];
-    const usta_id = contextAction.split('_')[1];
-    const usta = await this.ustaModel.findOne({ where: { user_id: usta_id } });
-    if (!usta) {
+    const mijoz_id = contextAction.split('_')[1];
+    const mijoz = await this.mijozModel.findOne({
+      where: { user_id: mijoz_id },
+    });
+    console.log(1);
+    if (!mijoz) {
       await ctx.replyWithHTML(
         'iltimos <b>/start</b> tugmasini bosing yoki pastdagi buttonni bosing',
         {
@@ -122,7 +123,7 @@ export class UstaService {
             .oneTime(),
         },
       );
-    } else if (!usta.status) {
+    } else if (!mijoz.status) {
       await ctx.reply(
         `Iltimos, <b>Telefon raqamni yuborish</b> tugmasini bosing`,
         {
@@ -134,13 +135,14 @@ export class UstaService {
             .oneTime(),
         },
       );
-    } else {
-      let ustalar = this.ustaModel.findAll({ include: Mijoz });
-      console.log('ustalar=>', ustalar);
       
-      // if (usta.mijozlar) {
+    } else {
+      let mijozlar = this.mijozModel.findAll({ include: Mijoz });
+      console.log('=>', mijozlar);
+
+      // if (mijoz.mijozlar) {
       //   await ctx.reply('Sizni band qilgan mijozlaringiz 👇: ');
-      //   usta.mijozlar.forEach(async (mijoz) => {
+      //   mijoz.mijozlar.forEach(async (mijoz) => {
       //     await ctx.reply(
       //       `Mijoz ID: ${mijoz.mijozid}\nMijoz name: ${mijoz.name}\nmijoz vaqti: ${mijoz.time}`,
       //       {
@@ -149,11 +151,11 @@ export class UstaService {
       //             [
       //               {
       //                 text: "Mijoz bilan bog'lanish",
-      //                 callback_data: `callingCustomer_${usta_id}_${mijoz.mijozid}`,
+      //                 callback_data: `callingCustomer_${mijoz_id}_${mijoz.mijozid}`,
       //               },
       //               {
       //                 text: `Mijozni bekor qilish 🚫`,
-      //                 callback_data: `mijoznibekorqilish_${usta_id}_${mijoz.time}`,
+      //                 callback_data: `mijoznibekorqilish_${mijoz_id}_${mijoz.time}`,
       //               },
       //             ],
       //           ],
@@ -169,66 +171,13 @@ export class UstaService {
     }
   }
 
-  async onMyWorkday(ctx: Context) {
+  async onXizmat(ctx: Context) {
     const contextAction = ctx.callbackQuery!['data'];
-    const usta_id = contextAction.split('_')[1];
-    const usta = await this.ustaModel.findOne({ where: { user_id: usta_id } });
-    if (!usta) {
-      await ctx.replyWithHTML(
-        'iltimos <b>/start</b> tugmasini bosing yoki pastdagi buttonni bosing',
-        {
-          parse_mode: 'HTML',
-          ...Markup.keyboard([['/start']])
-            .resize()
-            .oneTime(),
-        },
-      );
-    } else if (!usta.status) {
-      await ctx.reply(
-        `Iltimos, <b>Telefon raqamni yuborish</b> tugmasini bosing`,
-        {
-          parse_mode: 'HTML',
-          ...Markup.keyboard([
-            [Markup.button.contactRequest('Telefon raqamni yuborish')],
-          ])
-            .resize()
-            .oneTime(),
-        },
-      );
-    } else {
-      const current = new Date();
-      current.setDate(25);
-      const days: String[] = [];
-      for (let i = 0; i < 10; i++) {
-        days.push(`${current}`);
-        current.setDate(current.getDate() + 1);
-      }
-      const buttons: { text: string; callback_data: string }[][] = [];
-      for (let i = 0; i < days.length; i += 5) {
-        const row: { text: string; callback_data: string }[] = [];
-        for (let j = i; j < i + 5 && j < days.length; j++) {
-          const day = days[j].split(' ');
-          row.push({
-            text: `${day[2]}-${day[1]}`,
-            callback_data: `myworkday_${day[2]}_${day[1]}_${usta_id}`,
-          });
-        }
-        buttons.push(row);
-      }
-      await ctx.reply(`sizning ish kunlaringiz 1 haftalik: `, {
-        reply_markup: {
-          inline_keyboard: buttons,
-        },
-      });
-    }
-  }
-
-  async onKasb(ctx: Context) {
-    const contextAction = ctx.callbackQuery!['data'];
-    const kasb = contextAction.split('_')[1];
+    const xizmat = contextAction.split('_')[1];
     const user_id = Number(contextAction.split('_')[2]);
-    const usta = await this.ustaModel.findOne({ where: { user_id } });
-    if (!usta) {
+    const mijoz = await this.mijozModel.findOne({ where: { user_id } });
+    console.log("mijoz1: ", mijoz);
+    if (!mijoz) {
       await ctx.replyWithHTML(
         'iltimos <b>/start</b> tugmasini bosing yoki pastdagi buttonni bosing',
         {
@@ -239,9 +188,9 @@ export class UstaService {
         },
       );
     } else {
-      usta.kasb = kasb;
-      usta.last_state = 'first_name';
-      await usta.save();
+      mijoz.xizmat = xizmat;
+      mijoz.last_state = 'name';
+      await mijoz.save();
       await ctx.replyWithHTML('iltimos ismingizni kiriting: ', {
         parse_mode: 'HTML',
         ...Markup.removeKeyboard(),

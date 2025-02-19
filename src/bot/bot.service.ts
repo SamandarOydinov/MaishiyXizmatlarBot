@@ -6,6 +6,7 @@ import { Context, Markup, Telegraf } from 'telegraf';
 import { BOT_NAME } from '../app.constants';
 import { Usta } from './models/usta.model';
 import { Admin } from './models/admin.model';
+import { Mijoz } from './models/mijoz.model';
 
 @Injectable()
 export class BotService {
@@ -13,7 +14,7 @@ export class BotService {
     @InjectModel(Bot) private readonly botModel: typeof Bot,
     @InjectModel(Usta) private readonly ustaModel: typeof Usta,
     @InjectModel(Admin) private readonly adminModel: typeof Admin,
-    // @InjectModel(Mijoz) private readonly mijozModel: typeof Mijoz,
+    @InjectModel(Mijoz) private readonly mijozModel: typeof Mijoz,
     @InjectBot(BOT_NAME) private readonly bot: Telegraf<Context>,
   ) {}
 
@@ -39,46 +40,6 @@ export class BotService {
             .oneTime(),
         },
       );
-      // const user_id = ctx.from?.id;
-      // const user = await this.botModel.findOne({ where: { user_id } });
-      // console.log('user: ', user);
-      // console.log('user_id: ', user_id);
-      // if (!user) {
-      //   await this.botModel.create({
-      //     user_id,
-      //     user_name: ctx.from?.username,
-      //     first_name: ctx.from?.first_name,
-      //     last_name: ctx.from?.last_name,
-      //     lang: ctx.from?.language_code,
-      //   });
-      //   await ctx.reply(
-      //     "siz qaysi role bo'yicha ro'yxatdan o'tmoqchisiz tanlang do'stim ⤵️",
-      //     {
-      //       parse_mode: 'HTML',
-      //       ...Markup.keyboard([['Usta', 'Mijoz']])
-      //         .resize()
-      //         .oneTime(),
-      //     },
-      //   );
-      // } else if (!user.status) {
-      //   await ctx.reply(
-      //     `Iltimos, <b>Telefon raqamni yuborish</b> tugmasini bosing`,
-      //     {
-      //       parse_mode: 'HTML',
-      //       ...Markup.keyboard([
-      //         [Markup.button.contactRequest('Telefon raqamni yuborish')],
-      //       ])
-      //         .resize()
-      //         .oneTime(),
-      //     },
-      //   );
-      // } else {
-      //   await this.bot.telegram.sendChatAction(user_id!, 'typing');
-      //   await ctx.reply(`Ushbu bot Maishiy xizmatlar uchun mo'ljallangan`, {
-      //     parse_mode: 'HTML',
-      //     ...Markup.removeKeyboard(),
-      //   });
-      // }
     } catch (error) {
       console.log('StartError: ', error);
     }
@@ -86,10 +47,20 @@ export class BotService {
 
   async onRegister(ctx: Context) {
     await ctx.replyWithHTML("siz kim bo'lib ro'yxatdan o'tmoqchisiz", {
-      parse_mode: 'HTML',
-      ...Markup.keyboard([['Usta', 'Mijoz']])
-        .resize()
-        .oneTime(),
+      reply_markup: {
+        inline_keyboard: [
+          [
+            {
+              text: `Usta`,
+              callback_data: `ustabulimi_${ctx.from?.id}`,
+            },
+            {
+              text: `Mijoz`,
+              callback_data: `mijozbulimi_${ctx.from?.id}`,
+            },
+          ],
+        ],
+      },
     });
   }
 
@@ -113,6 +84,7 @@ export class BotService {
   async adminBekorQildi(ctx: Context) {
     const contextAction = ctx.callbackQuery!['data'];
     const usta_id = Number(contextAction.split('_')[1]);
+
     const usta = await this.ustaModel.update(
       { status: false },
       { where: { user_id: usta_id } },
@@ -164,7 +136,7 @@ usta bir mijozga sarflaydigan o'rtacha vaqt: ${usta?.averageTimeForCustomer}
     );
     await ctx.reply('✅ So‘rovingiz adminlarga yuborildi!');
 
-    await ctx.reply('', {
+    await ctx.reply("quyidagi bo'limlardan birini tanlang", {
       reply_markup: {
         inline_keyboard: [
           [
@@ -178,7 +150,7 @@ usta bir mijozga sarflaydigan o'rtacha vaqt: ${usta?.averageTimeForCustomer}
             },
             {
               text: "Admin bilan bog'lanish",
-              callback_data: `call_${usta_id}`,
+              callback_data: `call_${usta_id}_${admin_id}`,
             },
           ],
         ],
@@ -196,6 +168,13 @@ usta bir mijozga sarflaydigan o'rtacha vaqt: ${usta?.averageTimeForCustomer}
       await ctx.reply(
         "iltimos adminga yubormoqchi bo'lgan matningizni yuboring",
       );
+    } else {
+      await ctx.reply("siz hali ro'yxatdan o'tmagansiz: ", {
+        parse_mode: 'HTML',
+        ...Markup.keyboard([['/start']])
+          .resize()
+          .oneTime(),
+      });
     }
   }
 
@@ -254,7 +233,7 @@ usta bir mijozga sarflaydigan o'rtacha vaqt: ${newUsta?.averageTimeForCustomer}
           );
         } else {
           const usta = await this.ustaModel.findOne({ where: { user_id } });
-          // const mijoz = await this.mijozModel.findOne({ where: {user_id}})
+          const mijoz = await this.mijozModel.findOne({ where: { user_id } });
           if (usta && usta.last_state !== 'finish') {
             if (usta.last_state == 'phone_number') {
               usta.last_state = 'ustaxona_name';
@@ -270,6 +249,22 @@ usta bir mijozga sarflaydigan o'rtacha vaqt: ${newUsta?.averageTimeForCustomer}
               await ctx.reply('endi ish xonangiz nomini kiriting: ', {
                 parse_mode: 'HTML',
                 ...Markup.removeKeyboard(),
+              });
+            }
+          }
+          if (mijoz && mijoz.last_state !== 'finish') {
+            if (mijoz.last_state == 'phone_number') {
+              mijoz.last_state = 'location';
+              mijoz.phone_number = ctx.message.contact.phone_number;
+              mijoz.status = true
+              await mijoz.save();
+              await ctx.reply('bizga lokatsiyani yuboring: ', {
+                parse_mode: 'HTML',
+                ...Markup.keyboard([
+                  [Markup.button.locationRequest('locatsiyani yuborish')],
+                ])
+                  .resize()
+                  .oneTime(),
               });
             }
           }
@@ -425,7 +420,9 @@ usta bir mijozga sarflaydigan o'rtacha vaqt: ${newUsta?.averageTimeForCustomer}
     try {
       if ('location' in ctx.message!) {
         const user_id = ctx.from?.id;
+        const usta = await this.ustaModel.findOne({ where: { user_id } });
         const user = await this.botModel.findOne({ where: { user_id } });
+        const mijoz = await this.mijozModel.findOne({ where: { user_id } });
         if (!user) {
           await ctx.replyWithHTML(
             'iltimos <b>/start</b> tugmasini bosing yoki pastdagi buttonni bosing',
@@ -437,8 +434,6 @@ usta bir mijozga sarflaydigan o'rtacha vaqt: ${newUsta?.averageTimeForCustomer}
             },
           );
         } else {
-          const usta = await this.ustaModel.findOne({ where: { user_id } });
-          // const mijoz = await this.mijozModel.findOne({ where: {user_id}})
           if (usta && usta.last_state !== 'finish') {
             if (usta.last_state == 'location') {
               usta.last_state = 'start_work_time';
@@ -448,6 +443,7 @@ usta bir mijozga sarflaydigan o'rtacha vaqt: ${newUsta?.averageTimeForCustomer}
               await usta!.save();
               await ctx.reply(
                 "locatsiyangiz muvaffaqiyatli saqlandi do'stim👍",
+                { parse_mode: 'HTML', ...Markup.removeKeyboard() },
               );
               const times: number[] = [8, 9, 10, 11, 12, 13];
 
@@ -480,6 +476,36 @@ usta bir mijozga sarflaydigan o'rtacha vaqt: ${newUsta?.averageTimeForCustomer}
               });
             }
           }
+
+          if (mijoz) {
+            if (mijoz.last_state !== 'finish') {
+              if (mijoz.last_state == 'location') {
+                mijoz.last_state = 'usta';
+                mijoz.location = {
+                  lat: ctx.message.location.latitude,
+                  long: ctx.message.location.longitude,
+                };
+                await mijoz.save();
+                const ustalar = await this.ustaModel.findAll();
+                await ctx.reply('siz ustalardan birini tanlang: ', {
+                  reply_markup: {
+                    inline_keyboard: [
+                      [
+                        {
+                          text: `name: ${ustalar[0]?.first_name}`,
+                          callback_data: `bandqilish_${ustalar[0]?.user_id}_${mijoz.user_id}`,
+                        },
+                        {
+                          text: `name: ${ustalar[1]?.first_name}`,
+                          callback_data: `bandqilish_${ustalar[1]?.user_id}_${mijoz.user_id}`,
+                        },
+                      ],
+                    ],
+                  },
+                });
+              }
+            }
+          }
         }
       }
     } catch (error) {
@@ -490,15 +516,16 @@ usta bir mijozga sarflaydigan o'rtacha vaqt: ${newUsta?.averageTimeForCustomer}
   async onText(ctx: Context) {
     if ('text' in ctx.message!) {
       const user_id = ctx.from?.id;
-      const user = await this.botModel.findByPk(user_id);
-        const usta = await this.ustaModel.findOne({ where: { user_id } });
-      const admin = await this.adminModel.findByPk(user_id)
+      const user = await this.botModel.findOne({ where: { user_id } });
+      const usta = await this.ustaModel.findOne({ where: { user_id } });
+      const admin = await this.adminModel.findOne({ where: { user_id } });
+      const mijoz = await this.mijozModel.findOne({ where: { user_id } });
       if (!user) {
         await ctx.reply(`Siz avval ro'yxatdan o'ting`, {
           parse_mode: 'HTML',
           ...Markup.keyboard([['/start']]).resize(),
         });
-      } else if(usta) {
+      } else if (usta) {
         if (usta.last_state !== 'finish') {
           if (usta.last_state == 'first_name') {
             usta.last_state = 'last_name';
@@ -551,15 +578,44 @@ usta bir mijozga sarflaydigan o'rtacha vaqt: ${newUsta?.averageTimeForCustomer}
                 .resize()
                 .oneTime(),
             });
-          } else if (usta && usta.call_with_admin == 'call with admin') {
-            const message = ctx.message.text;
-            await this.bot.telegram.sendMessage(process.env.ADMIN_ID!, message);
           }
-        } else if(admin && admin.last_state !== "finish"){
-          if(admin.last_state === "addService"){
-            admin.last_state = "finish"
-            
-            await admin.save()
+        } else if (usta.call_with_admin == 'call with admin') {
+          if(ctx.message.text !== "end"){
+          const message = ctx.message.text;
+          await this.bot.telegram.sendMessage(process.env.ADMIN_ID!, message);
+        }else{
+          usta.call_with_admin = "end"
+          await usta.save()
+          await this.bot.telegram.sendMessage(process.env.ADMIN_ID!, ctx.message.text)
+        }
+      }
+      }
+
+      if (admin && admin.last_state !== 'finish') {
+        if (admin.last_state === 'addService') {
+          admin.last_state = 'finish';
+          await admin.save();
+        }
+      }
+      if (mijoz) {
+        if (mijoz.last_state !== 'finish') {
+          if (mijoz.last_state == 'name') {
+            mijoz.last_state = 'phone_number';
+            mijoz.name = ctx.message.text;
+            await mijoz.save();
+            await ctx.reply(
+              "Telefon raqamingizni yuborsangiz bazaga saqlab qo'yamiz",
+              {
+                parse_mode: 'HTML',
+                ...Markup.keyboard([
+                  [Markup.button.contactRequest('Telefon raqamni yuborish')],
+                ])
+                  .resize()
+                  .oneTime(),
+              },
+            );
+          } else if(mijoz.last_state === "usta"){
+            mijoz.last_state = ""
           }
         }
       }

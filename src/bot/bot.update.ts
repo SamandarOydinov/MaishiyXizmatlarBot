@@ -1,4 +1,12 @@
-import { Action, Command, Ctx, Hears, On, Start, Update } from 'nestjs-telegraf';
+import {
+  Action,
+  Command,
+  Ctx,
+  Hears,
+  On,
+  Start,
+  Update,
+} from 'nestjs-telegraf';
 import { Context } from 'telegraf';
 import { BotService } from './bot.service';
 import { AdminService } from './admin.service';
@@ -59,7 +67,7 @@ export class BotUpdate {
     await this.botService.onTekshirish(ctx);
   }
 
-  @Action(/^call_+\d+$/)
+  @Action(/^call_+\d+_+\d+$/)
   async onCallWithAdmin(@Ctx() ctx: Context) {
     await this.botService.onCallWithAdmin(ctx);
   }

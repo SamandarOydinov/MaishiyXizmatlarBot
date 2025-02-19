@@ -11,4 +11,15 @@ export class Xizmat extends Model<Xizmat, IXizmatCreationAttr> {
     unique: true,
   })
   id: number;
+
+  @Column({
+    type: DataType.STRING
+  })
+  name: string
+
+  @Column({
+    type: DataType.BOOLEAN,
+    defaultValue: true
+  })
+  is_active: boolean
 }

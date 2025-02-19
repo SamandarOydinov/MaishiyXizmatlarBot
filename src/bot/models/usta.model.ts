@@ -1,4 +1,5 @@
-import { Column, DataType, Model, Table } from 'sequelize-typescript';
+import { Column, DataType, HasMany, Model, Table } from 'sequelize-typescript';
+import { Mijoz } from './mijoz.model';
 
 interface IUstaCreationAttr {
   user_id: number | undefined;
@@ -97,10 +98,13 @@ export class Usta extends Model<Usta, IUstaCreationAttr> {
   })
   call_with_admin: string
 
-  @Column({
-    type: DataType.JSON
-  })
-  mijozlar: [{name: string, mijozid: string, time: Date}]
+  @HasMany(() => Mijoz)
+  mijoz: Mijoz[]
+
+  // @Column({
+  //   type: DataType.JSON
+  // })
+  // mijozlar: [{name: string, mijozid: string, time: Date}]
 
   @Column({
     type: DataType.JSON

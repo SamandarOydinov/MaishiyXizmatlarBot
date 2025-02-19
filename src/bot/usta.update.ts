@@ -6,7 +6,7 @@ import { UstaService } from './usta.service';
 export class UstaUpdate {
   constructor(private readonly ustaService: UstaService) {}
 
-  @Hears('Usta')
+  @Action(/^ustabulimi_+\d+$/)
   async onUsta(@Ctx() ctx: Context) {
     await this.ustaService.onUsta(ctx);
   }
